@@ -16,21 +16,21 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Request {
 
-//    @NotBlank(message = "UID не может быть пустым")
+    @NotBlank(message = "UID не может быть пустым")
     @Size(max = 32, message = "UID не должен превышать 32 символа")
     private String uid;
 
-//    @NotBlank(message = "Operation UID не может быть пустым")
+    @NotBlank(message = "Operation UID не может быть пустым")
     @Size(max = 32, message = "Operation UID не должен превышать 32 символа")
     private String operationUid;
 
-//    @NotNull(message = "Имя системы не может быть пустым")
+    @NotNull(message = "Имя системы не может быть пустым")
     private Systems systemName;
 
-//    @NotBlank(message = "Системное время не может быть пустым")
+    @NotBlank(message = "Системное время не может быть пустым")
     private String systemTime;
 
-//    @NotBlank(message = "Источник не может быть пустым")
+    @NotBlank(message = "Источник не может быть пустым")
     private String source;
 
     @Min(value = 1, message = "communicationId должен быть не меньше 1")
