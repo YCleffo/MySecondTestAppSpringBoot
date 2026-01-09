@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.nikogosyan.MySecondTestAppSpringBoot.exception.UnsupportedCodeException;
 import ru.nikogosyan.MySecondTestAppSpringBoot.exception.ValidationFailedException;
-import ru.nikogosyan.MySecondTestAppSpringBoot.model.Request;
-import ru.nikogosyan.MySecondTestAppSpringBoot.model.Response;
+import ru.nikogosyan.MySecondTestAppSpringBoot.model.*;
 import ru.nikogosyan.MySecondTestAppSpringBoot.service.ValidationService;
+import ru.nikogosyan.MySecondTestAppSpringBoot.util.DateTimeUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -31,15 +31,13 @@ public class MyController {
     public ResponseEntity<Response> feedback(@Valid @RequestBody Request request,
                                              BindingResult bindingResult) {
 
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
         Response response = Response.builder()
                 .uid(request.getUid())
                 .operationUid(request.getOperationUid())
-                .systemTime(simpleDateFormat.format(new Date()))
-                .code("success")
-                .errorCode("")
-                .errorMessage("")
+                .systemTime(DateTimeUtil.getCustomFormat().format(new Date()))
+                .code(Codes.SUCCESS)
+                .errorCode(ErrorCode.EMPTY)
+                .errorMessage(ErrorMessage.EMPTY)
                 .build();
 
         try {
@@ -50,21 +48,21 @@ public class MyController {
             }
 
         } catch (ValidationFailedException e) {
-            response.setCode("failed");
-            response.setErrorCode("ValidationException");
-            response.setErrorMessage("Ошибка валидации: " + e.getMessage());
+            response.setCode(Codes.FAILED);
+            response.setErrorCode(ErrorCode.VALIDATION_EXCEPTION);
+            response.setErrorMessage(ErrorMessage.VALIDATION);
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 
         } catch (UnsupportedCodeException e) {
-            response.setCode("failed");
-            response.setErrorCode("UnsupportedCodeException");
-            response.setErrorMessage(e.getMessage());
+            response.setCode(Codes.FAILED);
+            response.setErrorCode(ErrorCode.UNSUPPORTED_EXCEPTION);
+            response.setErrorMessage(ErrorMessage.UNSUPPORTED);
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
-            response.setCode("failed");
-            response.setErrorCode("UnknownException");
-            response.setErrorMessage("Произошла непредвиденная ошибка");
+            response.setCode(Codes.FAILED);
+            response.setErrorCode(ErrorCode.UNKNOWN_EXCEPTION);
+            response.setErrorMessage(ErrorMessage.UNKNOWN);
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 

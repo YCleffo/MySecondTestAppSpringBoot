@@ -10,7 +10,11 @@ public class RequestValidationService implements ValidationService {
     @Override
     public void isValid(BindingResult bindingResult) throws ValidationFailedException {
         if (bindingResult.hasErrors()) {
-            throw new ValidationFailedException(bindingResult.getFieldError().toString());
+            throw new ValidationFailedException(
+                    bindingResult.getFieldError().getDefaultMessage() != null
+                            ? bindingResult.getFieldError().getDefaultMessage()
+                            : "Ошибка валидации"
+            );
         }
     }
 }
