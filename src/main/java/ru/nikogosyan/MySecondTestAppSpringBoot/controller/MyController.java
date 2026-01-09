@@ -18,7 +18,7 @@ import ru.nikogosyan.MySecondTestAppSpringBoot.service.ModifyResponseService;
 import ru.nikogosyan.MySecondTestAppSpringBoot.service.ValidationService;
 import ru.nikogosyan.MySecondTestAppSpringBoot.util.DateTimeUtil;
 
-import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 
 @Slf4j
@@ -44,6 +44,7 @@ public class MyController {
     @PostMapping(value = "/feedback")
     public ResponseEntity<Response> feedback(@Valid @RequestBody Request request,
                                              BindingResult bindingResult) {
+        request.setSystemTime(Instant.now().toString());
         log.info("request:{}", request);
 
         Response response = Response.builder()
