@@ -6,12 +6,24 @@ import lombok.Data;
 @Data
 @Builder
 public class Response {
+    /** Уникальный идентификатор сообщения */
     private String uid;
-    private String operationUid;
-    private String systemTime;
-    private Codes code;
-    private Double annualBonus;
-    private ErrorCode errorCode;
-    private ErrorMessage errorMessage;
 
+    /** Уникальный идентификатор операции */
+    private String operationUid;
+
+    /** Время отправки ответа */
+    private String systemTime;
+
+    /** Код выполнения операции */
+    private Codes code;
+
+    /** Размер годового бонуса */
+    private Double annualBonus;
+
+    /** Код ошибки */
+    private ErrorCode errorCode;
+
+    /** Текст ошибки */
+    private ErrorMessage errorMessage;
 }

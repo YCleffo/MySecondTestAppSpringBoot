@@ -24,20 +24,18 @@ import java.util.Date;
 @Slf4j
 @RestController
 public class MyController {
+    private static final String UNSUPPORTED_UID = "123";
 
     private final ValidationService validationService;
-
     private final ModifyResponseService modifyResponseService;
-
     private final ModifyRequestService modifyRequestService;
-
 
     @Autowired
     public MyController(ValidationService validationService,
                         @Qualifier("ModifySystemTimeResponseService")
                         ModifyResponseService modifyResponseService,
                         @Qualifier("modifyRequestSystemSourceService")
-                            ModifyRequestService modifyRequestService) {
+                        ModifyRequestService modifyRequestService) {
         this.validationService = validationService;
         this.modifyResponseService = modifyResponseService;
         this.modifyRequestService = modifyRequestService;
@@ -47,9 +45,26 @@ public class MyController {
     public ResponseEntity<Response> feedback(@Valid @RequestBody Request request,
                                              BindingResult bindingResult) {
         request.setSystemTime(Instant.now().toString());
-        log.info("request:{}", request);
+        log.info("Incoming request: {}", request);
 
-        Response response = Response.builder()
+        Response response = createInitialResponse(request);
+
+        try {
+            processRequest(request, bindingResult, response);
+            log.info("Request processed successfully. Response: {}", response);
+            return ResponseEntity.ok(response);
+
+        } catch (ValidationFailedException e) {
+            return handleValidationException(response, e);
+        } catch (UnsupportedCodeException e) {
+            return handleUnsupportedCodeException(response, e);
+        } catch (Exception e) {
+            return handleGenericException(response, e);
+        }
+    }
+
+    private Response createInitialResponse(Request request) {
+        return Response.builder()
                 .uid(request.getUid())
                 .operationUid(request.getOperationUid())
                 .systemTime(DateTimeUtil.getCustomFormat().format(new Date()))
@@ -57,49 +72,48 @@ public class MyController {
                 .errorCode(ErrorCode.EMPTY)
                 .errorMessage(ErrorMessage.EMPTY)
                 .build();
+    }
 
-        log.info("Создан начальный response: uid={}, operationUid={}",
-                response.getUid(), response.getOperationUid());
+    private void processRequest(Request request, BindingResult bindingResult, Response response)
+            throws ValidationFailedException, UnsupportedCodeException {
+        validationService.isValid(bindingResult);
+        log.info("Validation passed for uid={}", request.getUid());
 
-        try {
-            validationService.isValid(bindingResult);
-            log.info("Валидация пройдена успешно для uid={}", request.getUid());
-            if ("123".equals(request.getUid())) {
-                log.warn("Обнаружен неподдерживаемый uid={}", request.getUid());
-                throw new UnsupportedCodeException("UID 123 не поддерживается системой");
-            }
-            modifyResponseService.modify(response);
+        checkUidSupport(request.getUid());
+        modifyResponseService.modify(response);
+        modifyRequestService.modify(request);
+    }
 
-            modifyRequestService.modify(request);
-
-            log.info("Запрос успешно обработан и отправлен в Сервис 2. Возвращаем ответ клиенту: {}", response);
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ValidationFailedException e) {
-            response.setCode(Codes.FAILED);
-            response.setErrorCode(ErrorCode.VALIDATION_EXCEPTION);
-            response.setErrorMessage(ErrorMessage.VALIDATION);
-            log.error("Ошибка валидации: {}", e.getMessage());
-            log.info("Response изменен1: code={}, errorCode={}, errorMessage={}",
-                    response.getCode(), response.getErrorCode(), response.getErrorMessage());
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-
-        } catch (UnsupportedCodeException e) {
-            response.setCode(Codes.FAILED);
-            response.setErrorCode(ErrorCode.UNSUPPORTED_EXCEPTION);
-            response.setErrorMessage(ErrorMessage.UNSUPPORTED);
-            log.error("Неподдерживаемый код: {}", e.getMessage());
-            log.info("Response изменен2: code={}, errorCode={}, errorMessage={}",
-                    response.getCode(), response.getErrorCode(), response.getErrorMessage());
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-
-        } catch (Exception e) {
-            response.setCode(Codes.FAILED);
-            response.setErrorCode(ErrorCode.UNKNOWN_EXCEPTION);
-            response.setErrorMessage(ErrorMessage.UNKNOWN);
-            log.error("Непредвиденная ошибка: {}", e.getMessage(), e);
-            log.info("Response изменен3: code={}, errorCode={}, errorMessage={}",
-                    response.getCode(), response.getErrorCode(), response.getErrorMessage());
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    private void checkUidSupport(String uid) throws UnsupportedCodeException {
+        if (UNSUPPORTED_UID.equals(uid)) {
+            log.warn("Unsupported uid detected: {}", uid);
+            throw new UnsupportedCodeException("UID " + uid + " is not supported by the system");
         }
+    }
+
+    private ResponseEntity<Response> handleValidationException(Response response, ValidationFailedException e) {
+        updateErrorResponse(response, Codes.FAILED, ErrorCode.VALIDATION_EXCEPTION, ErrorMessage.VALIDATION);
+        log.error("Validation error: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    private ResponseEntity<Response> handleUnsupportedCodeException(Response response, UnsupportedCodeException e) {
+        updateErrorResponse(response, Codes.FAILED, ErrorCode.UNSUPPORTED_EXCEPTION, ErrorMessage.UNSUPPORTED);
+        log.error("Unsupported code error: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    private ResponseEntity<Response> handleGenericException(Response response, Exception e) {
+        updateErrorResponse(response, Codes.FAILED, ErrorCode.UNKNOWN_EXCEPTION, ErrorMessage.UNKNOWN);
+        log.error("Unexpected error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    private void updateErrorResponse(Response response, Codes code, ErrorCode errorCode, ErrorMessage errorMessage) {
+        response.setCode(code);
+        response.setErrorCode(errorCode);
+        response.setErrorMessage(errorMessage);
+        log.info("Response updated: code={}, errorCode={}, errorMessage={}",
+                response.getCode(), response.getErrorCode(), response.getErrorMessage());
     }
 }

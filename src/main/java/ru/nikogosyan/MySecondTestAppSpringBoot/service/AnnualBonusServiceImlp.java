@@ -7,6 +7,13 @@ import ru.nikogosyan.MySecondTestAppSpringBoot.model.Position;
 public class AnnualBonusServiceImlp implements  AnnualBonusService{
     @Override
     public double calculate(Position position, double salary, double bonus, int workDays){
-        return salary * bonus * 365 * position.getPositionCoefficient() / workDays;
+        int currentYear = java.time.Year.now().getValue();
+        int daysInYear = isLeapYear(currentYear) ? 366 : 365;
+
+        return salary * bonus * daysInYear * position.getPositionCoefficient() / workDays;
+    }
+
+    private boolean isLeapYear(int year) {
+        return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
     }
 }
